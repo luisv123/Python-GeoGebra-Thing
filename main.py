@@ -11,6 +11,16 @@ def addPoint():
     scores.append(0)
     
     
+def killPoint(point):
+    id = listPoints.index(point)
+    color = listColors[random.randint(0, len(listColors)-1)]
+    point.delete()
+    listPoints.pop(id)
+    listAuras.pop(id)
+    #listTrails.pop(id)
+    scores.pop(id)
+    
+    
 def addFood():
     P = Point(random.randint(-5,5),random.randint(-5,5))
     P.color = 'white'
@@ -18,18 +28,24 @@ def addFood():
     scores.append(0)
     
     
-def updateAura():
+def getTopPoint():
     topScore = 0
     topPoint = listPoints[0]
     for point in listPoints:
         if scores[listPoints.index(point)] >= topScore:
             topScore = scores[listPoints.index(point)]
             topPoint = point
+            
+    return [topPoint, topScore]
+    
+    
+def updateAura():
+    topPoint = getTopPoint()
         
-    print('Top Score:'+str(topScore))
+    #print('Top Score:'+str(topPoint[1]))
         
     for aura in listAuras:
-        if listAuras.index(aura) == listPoints.index(topPoint):
+        if listAuras.index(aura) == listPoints.index(topPoint[0]):
             aura.is_visible = True
             
         else:
@@ -65,7 +81,9 @@ def iaPoints(point):
     indexPoint = listPoints.index(point)
     score = scores[indexPoint]
     goal = 'none'
-    
+
+    topPoint = getTopPoint()[0]
+    topScore = getTopPoint()[1]
     
     if Distance(point, centerPoint) > 4.5:
         goal = 'center'
@@ -82,15 +100,32 @@ def iaPoints(point):
     if Distance(centerPoint, bait) < 5.5:
         goal = 'bait'
     
+
+    if topPoint == point and len(listPoints) > 1:
+        goal = 'kill'
+       
     
     if goal == 'none':
-        if random.randint(1,4) == 1:
-            w = random.randint(1, 4)
+        while True:
+            w = random.randint(1, 2)
+            x = point.x
+            y = point.y
             
-            if w == 1:   x += 1
-            elif w == 2: x -= 1
-            elif w == 3: y += 1
-            elif w == 4: y -= 1
+            if random.randint(1,4) != 1:
+                if w == 1:   x += 1
+                elif w == 2: x -= 1
+                elif w == 3: y += 1
+                elif w == 4: y -= 1
+                
+                cPointsTouching = 0
+                for otherPoint in listPoints:
+                    if otherPoint.x == x and otherPoint.y == y:
+                        cPointsTouching += 1
+                        
+                if cPointsTouching == 0:
+                    break
+                    
+            
             
     elif goal == 'center':
         values = catchGoal(point, centerPoint)
@@ -99,6 +134,19 @@ def iaPoints(point):
         
     elif goal == 'food':
         values = catchGoal(point, possibleFood)
+        x = values[0]
+        y = values[1]
+        
+    elif goal == 'kill':
+        closestPoint = listPoints[0]
+        for otherPoint in listPoints:
+            if Distance(point, otherPoint) <= Distance(point, closestPoint) and otherPoint != point:
+                closestPoint = otherPoint
+                
+        print('Closest Point: '+str(closestPoint))
+        print('Top Point: '+str(topPoint))
+        
+        values = catchGoal(point, closestPoint)
         x = values[0]
         y = values[1]
         
@@ -112,8 +160,13 @@ def iaPoints(point):
             listFoods.remove(food)
             food.delete()
             score += 5
-            print('Food Catched!')
-    
+            
+    if topPoint == point:
+        for otherPoint in listPoints:
+            if otherPoint.x == x and otherPoint.y == y and otherPoint != point:
+                killPoint(otherPoint)
+                print('Hasta la vista, punto...')
+        
     prevPoint = Point(point.x, point.y)
     
     point.x = x
@@ -129,7 +182,7 @@ def iaPoints(point):
 
 # VARIABLES
 
-listColors = ['red','green','blue','orange','purple', 'black']
+listColors = ['red','green','blue','orange','purple', 'black', 'pink', 'gray', 'brown']
 timeRefresh = 0.25
 listPoints = []
 listFoods = []
@@ -144,11 +197,12 @@ centerPoint.is_visible = False
 circle = Circle(centerPoint,5.5, color = 'gray')
 aura = Circle(centerPoint, 0.5)
 aura.is_visible = False
+cRounds = 100
 
 
 
 
-print(dir('ggb'))
+
 
 
 
@@ -156,7 +210,6 @@ print(dir('ggb'))
 # WHILE
 
 while True:
-    
     for t in listTrails:
         t.is_visible = False
         pass
@@ -176,6 +229,14 @@ while True:
 
     updateAura()
     
+    if nRefresh == cRounds:
+        break
+    
     nRefresh += 1
     print('Round '+str(nRefresh))
+    print('')
+    
     time.sleep(timeRefresh)
+    
+    
+print('Felilcidades! Te humillaste solito!')
